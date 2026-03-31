@@ -2,98 +2,94 @@ package com.flexislot.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
+import javax.sql.DataSource;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 /**
  * Custom database configuration to handle common cloud deployment issues.
- * intercepts DataSourceProperties before any auto-configured DataSource is created,
- * ensuring the connection string is a valid JDBC URL.
+ * Explicitly creates the DataSource bean to guarantee that the connection
+ * string is correctly parsed and formatted before Hibernate tries to connect.
  */
 @Configuration
-public class DatabaseConfig implements BeanPostProcessor {
+public class DatabaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConfig.class);
 
-    @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof DataSourceProperties properties) {
-            String originalUrl = properties.getUrl();
-            log.info("[DATABASE-FIX] Intercepted DataSourceProperties. Configured URL: {}", 
-                originalUrl != null ? (originalUrl.contains("@") ? originalUrl.substring(0, originalUrl.indexOf(":") + 3) + "***@" + originalUrl.substring(originalUrl.indexOf("@") + 1) : originalUrl) : "null");
+    @Bean
+    @Primary
+    public DataSource dataSource(DataSourceProperties properties) {
+        String originalUrl = properties.getUrl();
+        log.info("[EXPLICIT-DB-CONFIG] Building DataSource. Initial URL: {}", 
+            originalUrl != null ? (originalUrl.contains("@") ? originalUrl.substring(0, originalUrl.indexOf(":") + 3) + "***@" + originalUrl.substring(originalUrl.indexOf("@") + 1) : originalUrl) : "null");
 
-            if (originalUrl != null) {
-                String workingUrl = originalUrl;
-                
-                // Strip jdbc: if present to simplify URI parsing
-                if (workingUrl.startsWith("jdbc:")) {
-                    workingUrl = workingUrl.substring(5);
-                }
-                // Normalize to postgresql://
-                if (workingUrl.startsWith("postgres://")) {
-                    workingUrl = workingUrl.replace("postgres://", "postgresql://");
-                }
+        String url = originalUrl;
+        String username = properties.getUsername();
+        String password = properties.getPassword();
 
-                // If it's a URI style connection (contains @ and starts with postgresql://)
-                if (workingUrl.startsWith("postgresql://") && workingUrl.contains("@")) {
-                    try {
-                        URI dbUri = new URI(workingUrl);
-                        String host = dbUri.getHost();
-                        int port = dbUri.getPort() == -1 ? 5432 : dbUri.getPort();
-                        String path = dbUri.getPath();
-                        String query = dbUri.getQuery();
-                        
-                        log.info("[DATABASE-FIX] Parsed URI structure. Host: {}, Port: {}, Database: {}", host, port, path);
+        if (url != null) {
+            String workingUrl = url;
+            
+            // Strip jdbc: prefix for URI parsing
+            if (workingUrl.startsWith("jdbc:")) {
+                workingUrl = workingUrl.substring(5);
+            }
+            // Normalize postgres:// to postgresql://
+            if (workingUrl.startsWith("postgres://")) {
+                workingUrl = workingUrl.replace("postgres://", "postgresql://");
+            }
 
-                        // Reconstruct JDBC URL
-                        String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path;
-                        if (query != null) {
-                            jdbcUrl += "?" + query;
-                        } else if (host != null && (host.contains("supabase") || host.contains("render"))) {
-                            jdbcUrl += "?sslmode=require";
-                        }
-                        
-                        // Override properties explicitly
-                        properties.setUrl(jdbcUrl);
-                        log.info("[DATABASE-FIX] Rewrote JDBC URL to: {}", jdbcUrl);
+            // If it's a URI style connection with credentials
+            if (workingUrl.startsWith("postgresql://") && workingUrl.contains("@")) {
+                try {
+                    URI dbUri = new URI(workingUrl);
+                    String host = dbUri.getHost();
+                    int port = dbUri.getPort() == -1 ? 5432 : dbUri.getPort();
+                    String path = dbUri.getPath();
+                    String query = dbUri.getQuery();
+                    
+                    log.info("[EXPLICIT-DB-CONFIG] Parsed URI. Host: {}, Port: {}, Database: {}", host, port, path);
 
-                        // Extract and override credentials
-                        if (dbUri.getUserInfo() != null) {
-                            String[] userInfo = dbUri.getUserInfo().split(":");
-                            String extractedUser = userInfo[0];
-                            properties.setUsername(extractedUser);
-                            
-                            if (userInfo.length > 1) {
-                                String extractedPass = userInfo[1];
-                                properties.setPassword(extractedPass);
-                                
-                                if ("[YOUR-PASSWORD]".equals(extractedPass)) {
-                                    log.error("=========================================================");
-                                    log.error("CRITICAL CONFIGURATION ERROR:");
-                                    log.error("Your database password is literally '[YOUR-PASSWORD]'!");
-                                    log.error("Please update your environment variables in Render.");
-                                    log.error("=========================================================");
-                                }
-                            }
-                        }
-                        
-                    } catch (URISyntaxException e) {
-                        log.error("[DATABASE-FIX] Failed to parse URI: {}", e.getMessage());
-                        // Simple fallback
-                        if (!originalUrl.startsWith("jdbc:")) {
-                            properties.setUrl("jdbc:" + originalUrl);
+                    // Reconstruct JDBC URL
+                    url = "jdbc:postgresql://" + host + ":" + port + path;
+                    if (query != null) {
+                        url += "?" + query;
+                    } else if (host != null && (host.contains("supabase") || host.contains("render"))) {
+                        url += "?sslmode=require";
+                    }
+                    
+                    log.info("[EXPLICIT-DB-CONFIG] Reconstructed JDBC URL: {}", url);
+
+                    // Extract credentials from URI to override properties
+                    if (dbUri.getUserInfo() != null) {
+                        String[] userInfo = dbUri.getUserInfo().split(":");
+                        username = userInfo[0];
+                        if (userInfo.length > 1) {
+                            password = userInfo[1];
                         }
                     }
-                } else if (!originalUrl.startsWith("jdbc:")) {
-                    properties.setUrl("jdbc:" + originalUrl);
+                } catch (URISyntaxException e) {
+                    log.error("[EXPLICIT-DB-CONFIG] Failed to parse URI: {}", e.getMessage());
+                    if (!url.startsWith("jdbc:")) {
+                        url = "jdbc:" + url;
+                    }
                 }
+            } else if (!url.startsWith("jdbc:")) {
+                url = "jdbc:" + url;
             }
         }
-        return bean;
+
+        return DataSourceBuilder.create()
+                .driverClassName(properties.getDriverClassName())
+                .url(url)
+                .username(username)
+                .password(password)
+                .build();
     }
 }
