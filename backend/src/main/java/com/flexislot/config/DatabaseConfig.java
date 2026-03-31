@@ -103,6 +103,9 @@ public class DatabaseConfig {
             log.error("Error Message: {}", e.getMessage());
             log.error("If this is a password auth failure, double check your Render env variables.");
             log.error("=========================================================");
+            
+            // CRITICAL: Rethrow the exception so the application crashes HERE and the user sees exactly this stack trace at the bottom of Render logs.
+            throw new RuntimeException("FATAL DATABASE CONNECTION ERROR: " + e.getMessage(), e);
         }
 
         return dataSource;
