@@ -20,5 +20,5 @@ COPY --from=build /app/target/*.jar app.jar
 # Standard Spring Boot port (will be overridden by PORT env var in application.yml)
 EXPOSE 8080
 
-# Run the application with explicit port mapping and entropy fix for faster startup
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:8080} -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
+# Run the application with explicit port mapping, entropy fix for faster startup, and memory limits for Render free tier
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:8080} -Djava.security.egd=file:/dev/./urandom -Xmx256m -Xss512k -jar app.jar"]
