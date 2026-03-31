@@ -1,0 +1,160 @@
+{
+  "info": { "name": "FlexiSlot API", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [{ "key": "baseUrl", "value": "http://localhost:8080/api" }, { "key": "token", "value": "" }],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"owner@flexislot.com\",\n  \"password\": \"owner123\",\n  \"role\": \"BUSINESS_OWNER\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["var j = pm.response.json(); if (j.token) pm.collectionVariables.set('token', j.token);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"owner@flexislot.com\",\n  \"password\": \"owner123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Business",
+      "item": [
+        {
+          "name": "Create business",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"My Salon\",\n  \"email\": \"salon@test.com\",\n  \"phone\": \"+123\",\n  \"location\": \"Main St\",\n  \"serviceType\": \"Beauty\"\n}" },
+            "url": "{{baseUrl}}/business"
+          }
+        },
+        {
+          "name": "Get my business",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/business/me"
+          }
+        },
+        {
+          "name": "Get business by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/business/:id" }
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "Create service",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"serviceName\": \"Haircut\",\n  \"basePrice\": 25.00,\n  \"durationMinutes\": 30\n}" },
+            "url": "{{baseUrl}}/services"
+          }
+        },
+        {
+          "name": "List by business",
+          "request": { "method": "GET", "url": "{{baseUrl}}/services/business/:businessId?page=0&size=20" }
+        }
+      ]
+    },
+    {
+      "name": "Slots",
+      "item": [
+        {
+          "name": "Create slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"serviceId\": \"SERVICE_ULID\",\n  \"slotDate\": \"2025-03-15\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"09:30\"\n}" },
+            "url": "{{baseUrl}}/slots"
+          }
+        },
+        {
+          "name": "Get available slots",
+          "request": { "method": "GET", "url": "{{baseUrl}}/slots/service/:serviceId?page=0&size=20" }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"slotId\": \"SLOT_ULID\"\n}" },
+            "url": "{{baseUrl}}/bookings"
+          }
+        },
+        {
+          "name": "List my bookings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/bookings/customer/:customerId?page=0&size=20"
+          }
+        },
+        {
+          "name": "Cancel booking",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/bookings/:id/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Initiate payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"bookingId\": \"BOOKING_ULID\",\n  \"amount\": 25.00,\n  \"currency\": \"USD\",\n  \"provider\": \"mock\"\n}" },
+            "url": "{{baseUrl}}/payments/initiate"
+          }
+        },
+        { "name": "Mock success", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/payments/:id/success" } },
+        { "name": "Mock fail", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/payments/:id/fail" } }
+      ]
+    }
+  ]
+}
