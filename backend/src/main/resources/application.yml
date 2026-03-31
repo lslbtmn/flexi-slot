@@ -2,9 +2,9 @@ spring:
   application:
     name: flexislot-backend
   datasource:
-    url: jdbc:postgresql://${SUPABASE_DB_HOST:localhost}:${SUPABASE_DB_PORT:5432}/${SUPABASE_DB_NAME:postgres}?sslmode=require
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
     username: ${SUPABASE_DB_USER:postgres}
-    password: ${SUPABASE_DB_PASSWORD:}
+    password: ${SUPABASE_DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
