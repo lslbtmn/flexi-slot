@@ -20,7 +20,7 @@ spring:
     open-in-view: false
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
 
@@ -47,3 +47,7 @@ logging:
 paystack:
   secret-key: key-goes-here
   public-key: key-goes-here
+
+# CORS Configuration
+cors:
+  allowed-origins: ${FRONTEND_URL:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
