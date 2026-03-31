@@ -29,16 +29,20 @@ public class DatabaseConfig {
         log.info("[EXPLICIT-DB-CONFIG] Building DataSource. Initial URL: {}", 
             originalUrl != null ? (originalUrl.contains("@") ? originalUrl.substring(0, originalUrl.indexOf(":") + 3) + "***@" + originalUrl.substring(originalUrl.indexOf("@") + 1) : originalUrl) : "null");
 
+        if (originalUrl != null) {
+            originalUrl = originalUrl.trim();
+        }
+
         String url = originalUrl;
-        String username = properties.getUsername();
-        String password = properties.getPassword();
+        String username = properties.getUsername() != null ? properties.getUsername().trim() : null;
+        String password = properties.getPassword() != null ? properties.getPassword().trim() : null;
 
         if (url != null) {
-            String workingUrl = url;
+            String workingUrl = url.trim();
             
             // Strip jdbc: prefix for URI parsing
             if (workingUrl.startsWith("jdbc:")) {
-                workingUrl = workingUrl.substring(5);
+                workingUrl = workingUrl.substring(5).trim();
             }
             // Normalize postgres:// to postgresql://
             if (workingUrl.startsWith("postgres://")) {
