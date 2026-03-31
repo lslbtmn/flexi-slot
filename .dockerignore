@@ -1,0 +1,24 @@
+# Ignore frontend and other root-level folders
+frontend/
+postman/
+.git/
+.vscode/
+
+# Ignore backend-specific build outputs and logs
+backend/target/
+backend/*.log
+backend/logs/
+backend/tmp/
+
+# Ignore Docker-related files (not needed in the image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.yaml
+
+# General exclusions
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
