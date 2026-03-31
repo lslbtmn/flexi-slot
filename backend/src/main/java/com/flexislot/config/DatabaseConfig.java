@@ -85,11 +85,26 @@ public class DatabaseConfig {
             }
         }
 
-        return DataSourceBuilder.create()
+        DataSource dataSource = DataSourceBuilder.create()
                 .driverClassName(properties.getDriverClassName())
                 .url(url)
                 .username(username)
                 .password(password)
                 .build();
+                
+        // Diagnostic test to force connection validation right now to print the exact reason
+        try {
+            log.info("[EXPLICIT-DB-CONFIG] Attempting diagnostic connection...");
+            dataSource.getConnection().close();
+            log.info("[EXPLICIT-DB-CONFIG] Diagnostic connection SUCCESSFUL!");
+        } catch (Exception e) {
+            log.error("=========================================================");
+            log.error("[EXPLICIT-DB-CONFIG] CRITICAL DATABASE CONNECTION FAILURE");
+            log.error("Error Message: {}", e.getMessage());
+            log.error("If this is a password auth failure, double check your Render env variables.");
+            log.error("=========================================================");
+        }
+
+        return dataSource;
     }
 }
